@@ -12,11 +12,40 @@
 #include <chrono>
 #include <thread>
 
-constexpr bool bUseValidationLayers = false;
+constexpr bool bUseValidationLayers = true;
 
 VulkanEngine* loadedEngine = nullptr;
 
 VulkanEngine& VulkanEngine::Get() { return *loadedEngine; }
+void VulkanEngine::create_swapchain(uint32_t width, uint32_t height)
+{
+    vkb::SwapchainBuilder swapchainBuilder{ _chosenGPU,_device,_surface };
+    _swapchainImageFormat = VK_FORMAT_B8G8R8A8_UNORM;
+    vkb::Swapchain vkbSwapchain = swapchainBuilder
+        .set_desired_format(VkSurfaceFormatKHR{ .format = _swapchainImageFormat,.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR })
+        .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
+        .set_desired_extent(width, height)
+        .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+        .build()
+        .value();
+
+    _swapchainExtent = vkbSwapchain.extent;
+    _swapchain = vkbSwapchain.swapchain;
+    _swapchainImages = vkbSwapchain.get_images().value();
+    _swapchainImageViews = vkbSwapchain.get_image_views().value();
+}
+void VulkanEngine::init_swapchain()
+{
+    create_swapchain(_windowExtent.width, _windowExtent.height);
+}
+void VulkanEngine::destroy_swapchain()
+{
+    vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+    for (int i = 0; i < _swapchainImageViews.size(); ++i)
+    {
+        vkDestroyImageView(_device, _swapchainImageViews[i], nullptr);
+    }
+}
 void VulkanEngine::init()
 {
     // only one engine initialization is allowed with the application.
@@ -88,14 +117,50 @@ void VulkanEngine::init_vulkan()
     // Get the VkDevice handle used in the rest of a vulkan application
     _device = vkbDevice.device;
     _chosenGPU = physicalDevice.physical_device;
+    // use vkbootstrap to get a Graphics queue
+    _graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+    _graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 }
-void VulkanEngine::init_swapchain()
-{
-    //nothing yet
-}
+
+//void VulkanEngine::init_commands()
+//{
+//    //create a command pool for commands submitted to the graphics queue.
+//    //we also want the pool to allow for resetting of individual command buffers
+//    VkCommandPoolCreateInfo commandPoolInfo = {};
+//    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+//    commandPoolInfo.pNext = nullptr;
+//    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+//    commandPoolInfo.queueFamilyIndex = _graphicsQueueFamily;
+//
+//    for (int i = 0; i < FRAME_OVERLAP; i++)
+//    {
+//        VK_CHECK(vkCreateCommandPool(_device, &commandPoolInfo, nullptr, &_frames[i]._commandPool));
+//        // allocate the default command buffer that we will use for rendering
+//        VkCommandBufferAllocateInfo cmdAllocInfo = {};
+//        cmdAllocInfo.sType= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+//        cmdAllocInfo.pNext = nullptr;
+//
+//        cmdAllocInfo.commandPool = _frames[i]._commandPool;
+//        cmdAllocInfo.commandBufferCount = 1;
+//        cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+//
+//        VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frames[i]._mainCommandBuffer));
+//    }
+//}
 void VulkanEngine::init_commands()
 {
-    //nothing yet
+    //create a command pool for commands submitted to the graphics queue.
+    //we also want the pool to allow for resetting of individual command buffers
+    VkCommandPoolCreateInfo commandPoolInfo = vkinit::command_pool_create_info(_graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
+    for (int i = 0; i < FRAME_OVERLAP; i++)
+    {
+        VK_CHECK(vkCreateCommandPool(_device, &commandPoolInfo, nullptr, &_frames[i]._commandPool));
+        // allocate the default command buffer that we will use for rendering
+        VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::command_buffer_allocate_info(_frames[i]._commandPool, 1);
+
+        VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frames[i]._mainCommandBuffer));
+    }
 }
 void VulkanEngine::init_sync_structures()
 {
@@ -104,7 +169,17 @@ void VulkanEngine::init_sync_structures()
 void VulkanEngine::cleanup()
 {
     if (_isInitialized) {
-
+        //make sure the gpu has stopped doing its things
+        vkDeviceWaitIdle(_device);
+        for (int i = 0; i < FRAME_OVERLAP; i++) {
+            vkDestroyCommandPool(_device, _frames[i]._commandPool, nullptr);
+        }
+        destroy_swapchain();
+        vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        vkDestroyDevice(_device, nullptr);
+        vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
+        vkDestroyInstance(_instance, nullptr);
+       
         SDL_DestroyWindow(_window);
     }
 
