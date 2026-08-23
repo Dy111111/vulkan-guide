@@ -4,6 +4,7 @@
 #pragma once
 
 #include <vk_types.h>
+#include"vk_descriptors.h"
 struct DeletionQueue
 {
 	std::deque<std::function<void()>> deletors;
@@ -41,6 +42,14 @@ public:
 	//draw resources
 	AllocatedImage _drawImage;
 	VkExtent2D _drawExtent;
+
+	DescriptorAllocator globalDescriptorAllocator;
+
+	VkDescriptorSet _drawImageDescriptors;
+	VkDescriptorSetLayout _drawImageDescriptorLayout;
+
+	VkPipeline _gradientPipeline;
+	VkPipelineLayout _gradientPipelineLayout;
 public:
 	VkInstance _instance;
 	VkDebugUtilsMessengerEXT _debug_messenger;
@@ -61,6 +70,11 @@ private:
 
 	void create_swapchain(uint32_t width, uint32_t height);
 	void destroy_swapchain();
+
+	void init_descriptors();
+
+	void init_pipelines();
+	void init_background_pipelines();
 public:
 
 	bool _isInitialized{ false };
