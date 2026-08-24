@@ -5,6 +5,21 @@
 
 #include <vk_types.h>
 #include"vk_descriptors.h"
+
+struct ComputePushConstants {
+	glm::vec4 data1;
+	glm::vec4 data2;
+	glm::vec4 data3;
+	glm::vec4 data4;
+};
+struct ComputeEffect {
+	const char* name;
+
+	VkPipeline pipeline;
+	VkPipelineLayout layout;
+
+	ComputePushConstants data;
+};
 struct DeletionQueue
 {
 	std::deque<std::function<void()>> deletors;
@@ -50,6 +65,16 @@ public:
 
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
+
+	// immediate submit structures
+	VkFence _immFence;
+	VkCommandBuffer _immCommandBuffer;
+	VkCommandPool _immCommandPool;
+
+	std::vector<ComputeEffect> backgroundEffects;
+	int currentBackgroundEffect{ 0 };
+
+	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 public:
 	VkInstance _instance;
 	VkDebugUtilsMessengerEXT _debug_messenger;
@@ -75,6 +100,8 @@ private:
 
 	void init_pipelines();
 	void init_background_pipelines();
+	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
+	void init_imgui();
 public:
 
 	bool _isInitialized{ false };
