@@ -66,6 +66,10 @@ public:
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
 
+	VkPipelineLayout _trianglePipelineLayout;
+	VkPipeline _trianglePipeline;
+
+	
 	// immediate submit structures
 	VkFence _immFence;
 	VkCommandBuffer _immCommandBuffer;
@@ -102,6 +106,7 @@ private:
 	void init_background_pipelines();
 	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
 	void init_imgui();
+	void init_triangle_pipeline();
 public:
 
 	bool _isInitialized{ false };
@@ -118,6 +123,7 @@ public:
 
 	//shuts down the engine
 	void cleanup();
+	void draw_geometry(VkCommandBuffer cmd);
 	void draw_background(VkCommandBuffer cmd);
 	//draw loop
 	void draw();
