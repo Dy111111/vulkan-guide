@@ -602,6 +602,11 @@ void VulkanEngine::run()
     while (!bQuit) {
         // Handle events on queue
         while (SDL_PollEvent(&e) != 0) {
+            // Forward every event to ImGui while it is valid. Processing only
+            // after the loop drops all but the final event (and can reuse a
+            // stale event on frames where the queue is empty).
+            ImGui_ImplSDL2_ProcessEvent(&e);
+
             // close the window when user alt-f4s or clicks the X button
             if (e.type == SDL_QUIT)
                 bQuit = true;
@@ -615,9 +620,6 @@ void VulkanEngine::run()
                 }
             }
         }
-        //send SDL event to imgui for handling
-        ImGui_ImplSDL2_ProcessEvent(&e);
-
 
         // do not draw if we are minimized
         if (stop_rendering) {
@@ -635,9 +637,10 @@ void VulkanEngine::run()
 
             ComputeEffect& selected = backgroundEffects[currentBackgroundEffect];
 
-            ImGui::Text("Selected effect: ", selected.name);
+            ImGui::Text("Selected effect: %s", selected.name);
 
-            ImGui::SliderInt("Effect Index", &currentBackgroundEffect, 0, backgroundEffects.size() - 1);
+            ImGui::SliderInt("Effect Index", &currentBackgroundEffect, 0,
+                static_cast<int>(backgroundEffects.size()) - 1);
 
             ImGui::InputFloat4("data1", (float*)&selected.data.data1);
             ImGui::InputFloat4("data2", (float*)&selected.data.data2);
