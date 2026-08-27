@@ -68,7 +68,10 @@ public:
 
 	VkPipelineLayout _trianglePipelineLayout;
 	VkPipeline _trianglePipeline;
+	VkPipelineLayout _meshPipelineLayout;
+	VkPipeline _meshPipeline;
 
+	GPUMeshBuffers rectangle;
 	
 	// immediate submit structures
 	VkFence _immFence;
@@ -93,6 +96,7 @@ public:
 	VkExtent2D _swapchainExtent;
 private:
 	void init_vulkan();
+	void init_default_data();
 	void init_swapchain();
 	void init_commands();
 	void init_sync_structures();
@@ -104,11 +108,14 @@ private:
 
 	void init_pipelines();
 	void init_background_pipelines();
+	void init_mesh_pipeline();
 	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
 	void init_imgui();
 	void init_triangle_pipeline();
+	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	void destroy_buffer(const AllocatedBuffer& buffer);
+	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 public:
-
 	bool _isInitialized{ false };
 	int _frameNumber {0};
 	bool stop_rendering{ false };
@@ -120,6 +127,8 @@ public:
 
 	//initializes everything in the engine
 	void init();
+
+	
 
 	//shuts down the engine
 	void cleanup();
