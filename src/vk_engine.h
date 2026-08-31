@@ -5,7 +5,7 @@
 
 #include <vk_types.h>
 #include"vk_descriptors.h"
-
+#include "vk_loader.h"
 struct ComputePushConstants {
 	glm::vec4 data1;
 	glm::vec4 data2;
@@ -56,6 +56,7 @@ public:
 	VmaAllocator _allocator;
 	//draw resources
 	AllocatedImage _drawImage;
+	AllocatedImage _depthImage;
 	VkExtent2D _drawExtent;
 
 	DescriptorAllocator globalDescriptorAllocator;
@@ -80,8 +81,10 @@ public:
 
 	std::vector<ComputeEffect> backgroundEffects;
 	int currentBackgroundEffect{ 0 };
+	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
 
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 public:
 	VkInstance _instance;
 	VkDebugUtilsMessengerEXT _debug_messenger;
@@ -114,7 +117,7 @@ private:
 	void init_triangle_pipeline();
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroy_buffer(const AllocatedBuffer& buffer);
-	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
+	
 public:
 	bool _isInitialized{ false };
 	int _frameNumber {0};
